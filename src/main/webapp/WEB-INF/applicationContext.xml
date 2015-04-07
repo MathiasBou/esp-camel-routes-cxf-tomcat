@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:camel="http://camel.apache.org/schema/spring" xmlns:cxf="http://camel.apache.org/schema/cxf"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+                        http://www.springframework.org/schema/beans/spring-beans.xsd
+                        http://camel.apache.org/schema/spring
+                        http://camel.apache.org/schema/spring/camel-spring.xsd
+	                    http://camel.apache.org/schema/cxf
+                        http://camel.apache.org/schema/cxf/camel-cxf.xsd">
+
+	   
+    <!-- Bean for automatically generate hawtio console metrics -->
+	<bean id="metricsRoutePolicyFactory" class="org.apache.camel.component.metrics.routepolicy.MetricsRoutePolicyFactory" />
+	
+	<!-- Bean for sorting the files -->
+	<!--   <bean id="cdrFileSorter" class="com.sas.esp.custom.routes.CdrFileSorter" /> -->
+
+	<bean id="transforToJson" class="com.sas.esp.custom.routes.TransformToJson" />
+
+	<!-- Bean for transforming messages to NotifyEventRequest Object -->
+	<!--   <bean id="NotifyEventRequestConverter" class="com.sas.esp.custom.routes.CallRTDM" /> -->
+	
+	<!-- Bean for calling SOAP web service -->
+	<!--  
+    <cxf:cxfEndpoint id="NotifyEventPortServiceClient"
+                     address="http://localhost:8091/mockNotifyEventPortSoap11"
+					 serviceClass="com.sas.esp.custom.wspub.NotifyEventPort"/>
+					 
+	--> 
+					 
+	<!-- Context -->
+	<camelContext id="espCamelContext" xmlns="http://camel.apache.org/schema/spring">
+
+		<!-- JAXB marshal / unmarshal  -->
+		<dataFormats>
+			<jaxb id="myJaxb" prettyPrint="true" contextPath="com.sas.esp.custom.wspub.types" />
+		</dataFormats>		
+
+	
+	    <!-- from File to ESP source window Route -->
+		<route id="FileAltamiraToEspRoute" startupOrder="20">
+
+			<from uri="file:/var/esp_input_data?move=.done" />
+		    <!--   <camel:process ref="DecodingProcess"></camel:process> -->
+			<split streaming="true">
+				<tokenize token="\n" group="1"></tokenize>
+				<convertBodyTo type="byte[]" />
+				<to uri="dfESP://localhost:55555/maxis_hotlink/topup_calculation/topup_source?mode=insert" />
+			</split>
+		</route>
+		
+		
+		<!-- from ESP RM20-output-window to RTDM REST Web Service Route -->
+		<route id="RM20_EspToRTDM_Route" startupOrder="30">
+			
+			<from uri="dfESP://localhost:55555/maxis_hotlink/topup_calculation/RM20_OUTPUT" />
+			<process ref="transforToJson" />
+			
+			<!-- output folder for JSON calls to RTDM  XX-->
+			<to uri="file:/var/esp_output_data" />
+			
+			<!--  RTDM REST call config -->
+			<setHeader headerName="Exchange.CONTENT_TYPE">
+				<constant>application/vnd.sas.decision.request+json</constant>
+			</setHeader>
+			<setHeader headerName="CamelHttpMethod">
+				<constant>POST</constant>
+			</setHeader>
+			
+			<!--  RTDM endpoint -->
+			<to uri="http4://sasbap.demo.sas.com/RTDM/rest/runtime/decisions/ESP_TopUp_Event"/>
+		
+		</route>
+
+
+		<!-- from ESP RM50-output-window to RTDM REST Web Service Route -->
+		<route id="RM50_EspToRTDM_Route" startupOrder="31">
+			
+			<from uri="dfESP://localhost:55555/maxis_hotlink/topup_calculation/RM50_OUTPUT" />
+			<process ref="transforToJson" />
+			<to uri="file:/var/esp_output_data" />
+			
+			<!--  RTDM REST call config -->
+			<setHeader headerName="Exchange.CONTENT_TYPE">
+				<constant>application/vnd.sas.decision.request+json</constant>
+			</setHeader>
+			<setHeader headerName="CamelHttpMethod">
+				<constant>POST</constant>
+			</setHeader>
+			
+			<!--  RTDM endpoint -->
+			<to uri="http4://sasbap.demo.sas.com/RTDM/rest/runtime/decisions/ESP_TopUp_Event"/>
+		
+		</route>
+		
+		
+		<!-- from ESP RM80-output-window to RTDM REST Web Service Route -->
+		<route id="RM80_EspToRTDM_Route" startupOrder="32">
+			
+			<from uri="dfESP://localhost:55555/maxis_hotlink/topup_calculation/RM80_OUTPUT" />
+			<process ref="transforToJson" />
+			<to uri="file:/var/esp_output_data" />
+			
+			<!--  RTDM REST call config -->
+			<setHeader headerName="Exchange.CONTENT_TYPE">
+				<constant>application/vnd.sas.decision.request+json</constant>
+			</setHeader>
+			<setHeader headerName="CamelHttpMethod">
+				<constant>POST</constant>
+			</setHeader>
+			
+			<!--  RTDM endpoint -->
+			<to uri="http4://sasbap.demo.sas.com/RTDM/rest/runtime/decisions/ESP_TopUp_Event"/>
+		
+		</route>
+
+
+
+	</camelContext>
+
+</beans>
