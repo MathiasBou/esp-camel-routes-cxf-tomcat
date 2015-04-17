@@ -1,9 +1,6 @@
 package com.sas.esp.custom.routes;
 
 /*
- * Custom comparator for sorting CDR files in Movistar Argentina
- * 
- * @author Henrique Danc (henrique.danc@sas.com)
  *
  *  We have to compare files with the following format
  *  	FN-20140129101837334748-SDPAR8-vlz3fedsdp1-GENCDR-2-0-1-9659
